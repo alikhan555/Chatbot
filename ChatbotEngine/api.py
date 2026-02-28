@@ -20,10 +20,17 @@ app.add_middleware(
 class Message(BaseModel):
     message: str = Field(..., min_length=5)
     threadId: str = Field(..., min_length=1)
+    isStream: bool = Field(default=False)
 
 
 @app.post("/chat")
 async def chat_endpoint(request: Message):
-    response = chat_instance.send_message(request.message, request.threadId)
-    reply = response["messages"][-1].content
-    return {"message": reply}
+    if request.isStream:
+        return StreamingResponse(
+            chat_instance.stream_message(request.message, request.threadId),
+            media_type="text/plain",
+        )
+    else:
+        response = chat_instance.send_message(request.message, request.threadId)
+        reply = response["messages"][-1].content
+        return {"message": reply}
